@@ -32,19 +32,11 @@ public class MySessionsRepository implements MySessionsDataSource {
     public Single<List<MySession>> findAll() {
         if (cachedMySessions != null && !cachedMySessions.isEmpty()) {
             return Single.create(emitter -> {
-                try {
-                    emitter.onSuccess(new ArrayList<>(cachedMySessions.values()));
-                } catch (Exception e) {
-                    emitter.onError(e);
-                }
+                emitter.onSuccess(new ArrayList<>(cachedMySessions.values()));
             });
         }
 
-        return localDataSource.findAll()
-                .map(mySessions -> {
-                    refreshCache(mySessions);
-                    return mySessions;
-                });
+        return localDataSource.findAll().doOnSuccess(this::refreshCache);
     }
 
     @Override

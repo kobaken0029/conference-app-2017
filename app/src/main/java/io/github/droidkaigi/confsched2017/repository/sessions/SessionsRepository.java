@@ -1,8 +1,11 @@
 package io.github.droidkaigi.confsched2017.repository.sessions;
 
+import android.support.annotation.VisibleForTesting;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -15,11 +18,11 @@ import io.reactivex.Single;
 @Singleton
 public class SessionsRepository implements SessionsDataSource {
 
-    private final SessionsDataSource localDataSource;
+    private final SessionsLocalDataSource localDataSource;
 
-    private final SessionsDataSource remoteDataSource;
+    private final SessionsRemoteDataSource remoteDataSource;
 
-    private Map<Integer, Session> cachedSessions;
+    @VisibleForTesting Map<Integer, Session> cachedSessions;
 
     private boolean isDirty;
 
@@ -32,40 +35,32 @@ public class SessionsRepository implements SessionsDataSource {
     }
 
     @Override
-    public Single<List<Session>> findAll(String languageId) {
-        if (cachedSessions != null && !cachedSessions.isEmpty() && !isDirty) {
+    public Single<List<Session>> findAll(Locale locale) {
+        if (hasCacheSessions()) {
             return Single.create(emitter -> {
-                try {
-                    emitter.onSuccess(new ArrayList<>(cachedSessions.values()));
-                } catch (Exception e) {
-                    emitter.onError(e);
-                }
+                emitter.onSuccess(new ArrayList<>(cachedSessions.values()));
             });
         }
 
         if (isDirty) {
-            return findAllFromRemote(languageId);
+            return findAllFromRemote(locale);
         } else {
-            return findAllFromLocal(languageId);
+            return findAllFromLocal(locale);
         }
     }
 
     @Override
-    public Maybe<Session> find(int sessionId, String languageId) {
-        if (cachedSessions != null && cachedSessions.containsKey(sessionId) && !isDirty) {
+    public Maybe<Session> find(int sessionId, Locale locale) {
+        if (hasCacheSession(sessionId)) {
             return Maybe.create(emitter -> {
-                try {
-                    emitter.onSuccess(cachedSessions.get(sessionId));
-                } catch (Exception e) {
-                    emitter.onError(e);
-                }
+                emitter.onSuccess(cachedSessions.get(sessionId));
             });
         }
 
         if (isDirty) {
-            return remoteDataSource.find(sessionId, languageId);
+            return remoteDataSource.find(sessionId, locale);
         } else {
-            return localDataSource.find(sessionId, languageId);
+            return localDataSource.find(sessionId, locale);
         }
     }
 
@@ -74,11 +69,21 @@ public class SessionsRepository implements SessionsDataSource {
         localDataSource.updateAllAsync(sessions);
     }
 
-    private Single<List<Session>> findAllFromLocal(String languageId) {
-        return localDataSource.findAll(languageId)
+    /**
+     * Clear all caches. only for debug purposes
+     */
+    @Override
+    public void deleteAll() {
+        cachedSessions.clear();
+        localDataSource.deleteAll();
+        isDirty = true;
+    }
+
+    private Single<List<Session>> findAllFromLocal(Locale locale) {
+        return localDataSource.findAll(locale)
                 .flatMap(sessions -> {
                     if (sessions.isEmpty()) {
-                        return findAllFromRemote(languageId);
+                        return findAllFromRemote(locale);
                     } else {
                         refreshCache(sessions);
                         return Single.create(emitter -> emitter.onSuccess(sessions));
@@ -86,12 +91,11 @@ public class SessionsRepository implements SessionsDataSource {
                 });
     }
 
-    private Single<List<Session>> findAllFromRemote(String languageId) {
-        return remoteDataSource.findAll(languageId)
-                .map(sessions -> {
+    private Single<List<Session>> findAllFromRemote(Locale locale) {
+        return remoteDataSource.findAll(locale)
+                .doOnSuccess(sessions -> {
                     refreshCache(sessions);
                     updateAllAsync(sessions);
-                    return sessions;
                 });
     }
 
@@ -109,4 +113,13 @@ public class SessionsRepository implements SessionsDataSource {
     public void setIdDirty(boolean isDirty) {
         this.isDirty = isDirty;
     }
+
+    boolean hasCacheSessions() {
+        return cachedSessions != null && !cachedSessions.isEmpty() && !isDirty;
+    }
+
+    boolean hasCacheSession(int sessionId) {
+        return cachedSessions != null && cachedSessions.containsKey(sessionId) && !isDirty;
+    }
+
 }

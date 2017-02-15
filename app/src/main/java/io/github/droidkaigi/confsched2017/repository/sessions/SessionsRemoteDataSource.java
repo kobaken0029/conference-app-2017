@@ -1,19 +1,17 @@
 package io.github.droidkaigi.confsched2017.repository.sessions;
 
-import com.annimon.stream.Stream;
-
 import android.text.TextUtils;
 
 import java.util.List;
+import java.util.Locale;
 
 import javax.inject.Inject;
 
 import io.github.droidkaigi.confsched2017.api.DroidKaigiClient;
 import io.github.droidkaigi.confsched2017.model.Session;
 import io.reactivex.Maybe;
+import io.reactivex.Observable;
 import io.reactivex.Single;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.schedulers.Schedulers;
 
 public final class SessionsRemoteDataSource implements SessionsDataSource {
 
@@ -25,27 +23,25 @@ public final class SessionsRemoteDataSource implements SessionsDataSource {
     }
 
     @Override
-    public Single<List<Session>> findAll(String languageId) {
-        return client.getSessions(languageId)
-                .map(sessions -> {
+    public Single<List<Session>> findAll(Locale locale) {
+        return client.getSessions(locale)
+                .doOnSuccess(sessions -> {
                     // API returns some sessions which have empty room info.
                     for (Session session : sessions) {
                         if (session.room != null && TextUtils.isEmpty(session.room.name)) {
                             session.room = null;
                         }
                     }
-                    return sessions;
-                })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread());
+                });
     }
 
     @Override
-    public Maybe<Session> find(int sessionId, String languageId) {
-        return findAll(languageId).map(sessions -> Stream.of(sessions)
+    public Maybe<Session> find(int sessionId, Locale locale) {
+        return findAll(locale)
+                .toObservable()
+                .flatMap(Observable::fromIterable)
                 .filter(session -> session.id == sessionId)
-                .findSingle()
-                .get()).toMaybe();
+                .singleElement();
     }
 
     @Override
@@ -53,4 +49,8 @@ public final class SessionsRemoteDataSource implements SessionsDataSource {
         // Do nothing
     }
 
+    @Override
+    public void deleteAll() {
+        // Do nothing
+    }
 }

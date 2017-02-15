@@ -6,21 +6,15 @@ import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 
-import javax.inject.Inject;
-
 import io.github.droidkaigi.confsched2017.R;
 import io.github.droidkaigi.confsched2017.databinding.ActivitySessionFeedbackBinding;
-import io.github.droidkaigi.confsched2017.view.fragment.SessionFeedbackFragment;
-import io.github.droidkaigi.confsched2017.viewmodel.SessionFeedbackViewModel;
+import io.github.droidkaigi.confsched2017.view.fragment.SessionFeedbackFragmentCreator;
 
 public class SessionFeedbackActivity extends BaseActivity {
 
     private static final String TAG = SessionFeedbackActivity.class.getSimpleName();
 
     private static final String EXTRA_SESSION_ID = "session_id";
-
-    @Inject
-    SessionFeedbackViewModel viewModel;
 
     private ActivitySessionFeedbackBinding binding;
 
@@ -39,6 +33,6 @@ public class SessionFeedbackActivity extends BaseActivity {
         initBackToolbar(binding.toolbar);
 
         final int sessionId = getIntent().getIntExtra(EXTRA_SESSION_ID, 0);
-        replaceFragment(SessionFeedbackFragment.newInstance(sessionId), R.id.content_view);
+        replaceFragment(SessionFeedbackFragmentCreator.newBuilder(sessionId).build(), R.id.content_view);
     }
 }

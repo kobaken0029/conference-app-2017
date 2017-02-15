@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        tools:context="io.github.droidkaigi.confsched.activity.SessionDetailActivity"
         >
 
     <data>
@@ -81,6 +79,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="?attr/actionBarSize"
                         android:background="?attr/selectableItemBackground"
+                        style="@style/BaseToolbar"
                         app:layout_collapseMode="pin"
                         />
 
@@ -139,6 +138,7 @@
                             android:layout_marginTop="@dimen/space_4dp"
                             android:background="@drawable/tag_language"
                             android:text="@{viewModel.session.room.name}"
+                            android:visibility="@{viewModel.roomVisibility}"
                             />
 
                     <TextView
@@ -157,6 +157,7 @@
                             android:layout_marginEnd="@dimen/space_8dp"
                             android:layout_marginRight="@dimen/space_8dp"
                             android:layout_marginTop="@dimen/space_4dp"
+                            android:visibility="@{viewModel.topicVisibility}"
                             app:topic="@{viewModel.session.topic}"
                             />
 
@@ -289,10 +290,10 @@
 
         <android.support.design.widget.FloatingActionButton
                 android:id="@+id/fab"
-                style="@style/FabMargin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="bottom|right|end"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="@dimen/space_16dp"
                 android:clickable="true"
                 android:onClick="@{viewModel::onClickFab}"
                 app:layout_anchorGravity="bottom|right|end"
